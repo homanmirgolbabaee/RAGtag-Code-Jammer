@@ -1,70 +1,123 @@
-
-######################################################################################################
-# In this section, we set the user authentication, user and app ID, model details, and the URL of 
-# the text we want as an input. Change these strings to run your own example.
-######################################################################################################
+import streamlit as st
 import os
+import requests
+import json
 from dotenv import load_dotenv
-load_dotenv("secrets.env")
-# Your PAT (Personal Access Token) can be found in the portal under Authentification
-PAT = os.getenv('CLARIFAI_PAT')
-# Specify the correct user_id/app_id pairings
-# Since you're making inferences outside your app's scope
-USER_ID = 'openai'
-APP_ID = 'chat-completion'
-# Change these to whatever model and text URL you want to use
-MODEL_ID = 'GPT-4'
-MODEL_VERSION_ID = '222980e6d13341a5a3d892e63dda1f9e'
-RAW_TEXT = 'I love your product very much'
-# To use a hosted text file, assign the url variable
-# TEXT_FILE_URL = 'https://samples.clarifai.com/negative_sentence_12.txt'
-# Or, to use a local text file, assign the url variable
-# TEXT_FILE_LOCATION = 'YOUR_TEXT_FILE_LOCATION_HERE'
-
-############################################################################
-# YOU DO NOT NEED TO CHANGE ANYTHING BELOW THIS LINE TO RUN THIS EXAMPLE
-############################################################################
-
 from clarifai_grpc.channel.clarifai_channel import ClarifaiChannel
-from clarifai_grpc.grpc.api import resources_pb2, service_pb2, service_pb2_grpc
+from clarifai_grpc.grpc.api import service_pb2, service_pb2_grpc
 from clarifai_grpc.grpc.api.status import status_code_pb2
+from clarifai_grpc.grpc.api import resources_pb2
 
-channel = ClarifaiChannel.get_grpc_channel()
-stub = service_pb2_grpc.V2Stub(channel)
 
-metadata = (('authorization', 'Key ' + PAT),)
+# Load the environment variables from the .env file
+load_dotenv("secrets.env")
 
-userDataObject = resources_pb2.UserAppIDSet(user_id=USER_ID, app_id=APP_ID)
+# Retrieve the PAT from the environment variable and Vectara API Key
+PAT = os.getenv('CLARIFAI_PAT')
+VECTARA_API_KEY = os.getenv('VECTARA_API_KEY')  # Assuming you have stored Vectara API Key in the .env file
 
-# To use a local text file, uncomment the following lines
-# with open(TEXT_FILE_LOCATION, "rb") as f:
-#    file_bytes = f.read()
+# Set up Streamlit layout
+st.title('Integrated Application')
 
-post_model_outputs_response = stub.PostModelOutputs(
-    service_pb2.PostModelOutputsRequest(
-        user_app_id=userDataObject,  # The userDataObject is created in the overview and is required when using a PAT
-        model_id=MODEL_ID,
-        version_id=MODEL_VERSION_ID,  # This is optional. Defaults to the latest model version
-        inputs=[
-            resources_pb2.Input(
-                data=resources_pb2.Data(
-                    text=resources_pb2.Text(
-                        raw=RAW_TEXT
-                        # url=TEXT_FILE_URL
-                        # raw=file_bytes
-                    )
-                )
-            )
+# Sidebar for Vectara Semantic Search
+st.sidebar.header('Vectara Semantic Search')
+
+# Input for the Vectara query in the sidebar
+vectara_query = st.sidebar.text_input("Enter your search query for Vectara:")
+
+
+# Function to perform the Vectara search
+def perform_vectara_search(query):
+    VECTARA_ENDPOINT = "https://api.vectara.io/v1/query"
+    CUSTOMER_ID = str(os.getenv('CUSTOMER_ID')) # Replace with your customer ID
+    CORPUS_ID =  str(os.getenv('CORPUS_ID'))# Replace with your corpus ID
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'customer-id': CUSTOMER_ID,
+        'x-api-key': VECTARA_API_KEY,
+    }
+
+    data = {
+        "query": [
+            {
+                "query": query,
+                "start": 0,
+                "numResults": 10,
+                "corpusKey": [
+                    {
+                        "customerId": int(CUSTOMER_ID),
+                        "corpusId": int(CORPUS_ID),
+                        "semantics": "DEFAULT",
+                        "metadataFilter": "part.lang = 'eng'",
+                    }
+                ],
+            }
         ]
-    ),
-    metadata=metadata
-)
-if post_model_outputs_response.status.code != status_code_pb2.SUCCESS:
-    print(post_model_outputs_response.status)
-    raise Exception(f"Post model outputs failed, status: {post_model_outputs_response.status.description}")
+    }
 
-# Since we have one input, one output will exist here
-output = post_model_outputs_response.outputs[0]
+    response = requests.post(VECTARA_ENDPOINT, headers=headers, json=data)
+    return response.json()
 
-print("Completion:\n")
-print(output.data.text.raw)
+
+# Display Vectara search results
+if vectara_query:
+    with st.spinner('Searching Vectara...'):
+        vectara_results = perform_vectara_search(vectara_query)
+        if 'responseSet' in vectara_results:
+            for result in vectara_results['responseSet'][0]['response']:
+                text = result['text']
+                score = result['score']
+                st.sidebar.write(f"Score: {score} - Result: {text}")
+        else:
+            st.sidebar.write("No results found in Vectara.")
+
+
+# Clarifai model invocation
+st.header('Clarifai Model Response')
+
+# Add a text input for the Clarifai model
+clarifai_input = st.text_input('Enter some text for Clarifai Model:')
+
+
+
+# Button to trigger Clarifai model inference
+if st.button('Generate Response'):
+    with st.spinner("Processing with Clarifai..."):
+        # Set up the connection and authentication
+        channel = ClarifaiChannel.get_grpc_channel()
+        stub = service_pb2_grpc.V2Stub(channel)
+        metadata = (('authorization', 'Key ' + PAT),)
+
+        # Create user data object
+        userDataObject = resources_pb2.UserAppIDSet(user_id='openai', app_id='chat-completion')
+
+        # Make the API call for Clarifai
+        post_model_outputs_response = stub.PostModelOutputs(
+            service_pb2.PostModelOutputsRequest(
+                user_app_id=userDataObject,
+                model_id='GPT-4',
+                version_id='222980e6d13341a5a3d892e63dda1f9e',
+                inputs=[
+                    resources_pb2.Input(
+                        data=resources_pb2.Data(
+                            text=resources_pb2.Text(
+                                raw=clarifai_input
+                            )
+                        )
+                    )
+                ]
+            ),
+            metadata=metadata
+        )
+
+        # Check the response status
+        if post_model_outputs_response.status.code != status_code_pb2.SUCCESS:
+            st.error(f"An error occurred with Clarifai: {post_model_outputs_response.status.description}")
+        else:
+            # Display the output
+            output = post_model_outputs_response.outputs[0].data.text.raw
+            st.success("Analysis Complete with Clarifai")
+            st.write("Response:")
+            st.write(output)
