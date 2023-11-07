@@ -16,17 +16,9 @@ load_dotenv("secrets.env")
 PAT = os.getenv('CLARIFAI_PAT')
 VECTARA_API_KEY = os.getenv('VECTARA_API_KEY')  # Assuming you have stored Vectara API Key in the .env file
 
-# Set up Streamlit layout
-st.title('Integrated Application')
-
-# Sidebar for Vectara Semantic Search
-st.sidebar.header('Vectara Semantic Search')
-
-# Input for the Vectara query in the sidebar
-vectara_query = st.sidebar.text_input("Enter your search query for Vectara:")
-
 
 # Function to perform the Vectara search
+
 def perform_vectara_search(query):
     VECTARA_ENDPOINT = "https://api.vectara.io/v1/query"
     CUSTOMER_ID = str(os.getenv('CUSTOMER_ID')) # Replace with your customer ID
@@ -57,67 +49,111 @@ def perform_vectara_search(query):
         ]
     }
 
-    response = requests.post(VECTARA_ENDPOINT, headers=headers, json=data)
-    return response.json()
-
-
-# Display Vectara search results
-if vectara_query:
-    with st.spinner('Searching Vectara...'):
-        vectara_results = perform_vectara_search(vectara_query)
-        if 'responseSet' in vectara_results:
-            for result in vectara_results['responseSet'][0]['response']:
-                text = result['text']
-                score = result['score']
-                st.sidebar.write(f"Score: {score} - Result: {text}")
+    try:
+        response = requests.post(VECTARA_ENDPOINT, headers=headers, json=data)
+        # Check if the request was successful
+        if response.status_code == 200:
+            return response.json()
         else:
-            st.sidebar.write("No results found in Vectara.")
+            # Log the status code and response content for debugging
+            st.error(f"Error in Vectara API request: Status code {response.status_code}")
+            st.json(response.json())
+            return None
+    except requests.exceptions.RequestException as e:
+        # Handle any errors that occur during the request
+        st.error(f"An error occurred while making a request to Vectara: {e}")
+        return None
+  
+
+def display_vectara_results(vectara_results):
+    if 'responseSet' in vectara_results:
+        for result in vectara_results['responseSet'][0]['response']:
+            text = result['text']
+            score = result['score']
+            
+            # Using columns to align score and text neatly
+            col1, col2 = st.columns([1, 4])
+            
+            with col1:
+                st.metric(label="Score", value=f"{score:.2f}")
+            
+            with col2:
+                st.text_area("", value=text, height=100, key=f"result_{score}", disabled=True)
+    else:
+        st.error("No results found in Vectara.")
 
 
-# Clarifai model invocation
-st.header('Clarifai Model Response')
-
-# Add a text input for the Clarifai model
-clarifai_input = st.text_input('Enter some text for Clarifai Model:')
 
 
 
-# Button to trigger Clarifai model inference
-if st.button('Generate Response'):
-    with st.spinner("Processing with Clarifai..."):
-        # Set up the connection and authentication
-        channel = ClarifaiChannel.get_grpc_channel()
-        stub = service_pb2_grpc.V2Stub(channel)
-        metadata = (('authorization', 'Key ' + PAT),)
 
-        # Create user data object
-        userDataObject = resources_pb2.UserAppIDSet(user_id='openai', app_id='chat-completion')
+# Initialize Streamlit application
+st.set_page_config(page_title='Customer Service Chatbot', layout='wide')
+st.title('Customer Service Chatbot')
 
-        # Make the API call for Clarifai
-        post_model_outputs_response = stub.PostModelOutputs(
-            service_pb2.PostModelOutputsRequest(
-                user_app_id=userDataObject,
-                model_id='GPT-4',
-                version_id='222980e6d13341a5a3d892e63dda1f9e',
-                inputs=[
-                    resources_pb2.Input(
-                        data=resources_pb2.Data(
-                            text=resources_pb2.Text(
-                                raw=clarifai_input
+# Sidebar settings and queries
+with st.sidebar:
+    st.header('Settings')
+    st.caption('Configure your bot settings here.')
+
+    # Sidebar for Vectara Semantic Search
+    st.header('Vectara Semantic Search')
+    vectara_query = st.text_input("Enter your search query:")
+
+# Main content layout
+with st.container():
+    col1, col2 = st.columns((1, 2))  # Adjust the ratio as per your UI need
+    with col1:
+        st.header('Clarifai Model Response')
+        clarifai_input = st.text_input('Enter text for Clarifai Model:')
+        # Button to trigger Clarifai model inference
+        if st.button('Generate Response'):
+            with st.spinner("Processing with Clarifai..."):
+                # Set up the connection and authentication
+                channel = ClarifaiChannel.get_grpc_channel()
+                stub = service_pb2_grpc.V2Stub(channel)
+                metadata = (('authorization', 'Key ' + PAT),)
+
+                # Create user data object
+                userDataObject = resources_pb2.UserAppIDSet(user_id='openai', app_id='chat-completion')
+
+                # Make the API call for Clarifai
+                post_model_outputs_response = stub.PostModelOutputs(
+                    service_pb2.PostModelOutputsRequest(
+                        user_app_id=userDataObject,
+                        model_id='GPT-4',
+                        version_id='222980e6d13341a5a3d892e63dda1f9e',
+                        inputs=[
+                            resources_pb2.Input(
+                                data=resources_pb2.Data(
+                                    text=resources_pb2.Text(
+                                        raw=clarifai_input
+                                    )
+                                )
                             )
-                        )
-                    )
-                ]
-            ),
-            metadata=metadata
-        )
+                        ]
+                    ),
+                    metadata=metadata
+                )
 
-        # Check the response status
-        if post_model_outputs_response.status.code != status_code_pb2.SUCCESS:
-            st.error(f"An error occurred with Clarifai: {post_model_outputs_response.status.description}")
-        else:
-            # Display the output
-            output = post_model_outputs_response.outputs[0].data.text.raw
-            st.success("Analysis Complete with Clarifai")
-            st.write("Response:")
-            st.write(output)
+                # Check the response status
+                if post_model_outputs_response.status.code != status_code_pb2.SUCCESS:
+                    st.error(f"An error occurred with Clarifai: {post_model_outputs_response.status.description}")
+                else:
+                    # Display the output
+                    output = post_model_outputs_response.outputs[0].data.text.raw
+                    st.success("Analysis Complete with Clarifai")
+                    st.write("Response:")
+                    st.write(output)
+    with col2:
+        if vectara_query:
+            with st.expander("Vectara Search Results"):
+                vectara_results = perform_vectara_search(vectara_query)
+                
+                # Using an expander to show results
+            with st.expander("Vectara Search Results", expanded=True):
+                vectara_results = perform_vectara_search(vectara_query)
+                display_vectara_results(vectara_results)
+
+
+
