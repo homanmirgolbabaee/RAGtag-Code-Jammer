@@ -54,5 +54,3 @@ This repository contains code for a Streamlit-based customer service chatbot tha
 This project is licensed under the MIT License - see the [LICENSE](link_to_license) file for details.
 
 ---
-
-Feel free to adjust and personalize the README with actual links, descriptions, and specifics pertinent to your hackathon project.
