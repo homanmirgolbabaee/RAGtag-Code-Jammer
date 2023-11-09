@@ -1,8 +1,5 @@
 import streamlit as st
-
 import requests
-import json
-
 from clarifai_grpc.channel.clarifai_channel import ClarifaiChannel
 from clarifai_grpc.grpc.api import service_pb2, service_pb2_grpc
 from clarifai_grpc.grpc.api.status import status_code_pb2
@@ -16,7 +13,8 @@ from urllib.parse import urlencode
 
 def load_cookies_from_json(json_filepath):
     with open(json_filepath, 'r') as f:
-        cookies_dict = json.load(f)
+        #cookies_dict = json.load(f)
+        cookies_dict= None
     return cookies_dict
 
 # It's assumed here that `cookies` is already a dictionary with your authentication cookies.
