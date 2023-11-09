@@ -107,24 +107,16 @@ def display_vectara_results(vectara_results):
 
 
 # Initialize Streamlit application
-st.set_page_config(page_title='Customer Service Chatbot', layout='wide')
-st.title('Customer Service Chatbot')
+st.set_page_config(page_title='RAGtag Code Jammer', layout='wide')
+# Title and description
+st.title('🤖RAGtag Customer Assistant')
+st.caption('Click Here for Tutorial')
+option = st.sidebar.radio('Choose a service:', ('Clarifai', 'Vectara', 'Chatbot'))
 
-# Sidebar settings and queries
-with st.sidebar:
-    st.header('Settings')
-    st.caption('Configure your bot settings here.')
 
-    # Sidebar for Vectara Semantic Search
-    st.header('Vectara Semantic Search')
-    vectara_query = st.text_input("Enter your search query:")
-
-# Main content layout
-with st.container():
-    col1, col2 = st.columns((1, 2))  # Adjust the ratio as per your UI need
-    with col1:
+if option == 'Clarifai':
         st.header('Clarifai Model Response')
-        clarifai_input = st.text_input('Enter text for Clarifai Model:')
+        clarifai_input = st.text_area('Enter text for Clarifai Model:', height=100)
         # Button to trigger Clarifai model inference
         if st.button('Generate Response'):
             with st.spinner("Processing with Clarifai..."):
@@ -163,24 +155,36 @@ with st.container():
                     output = post_model_outputs_response.outputs[0].data.text.raw
                     st.success("Analysis Complete with Clarifai")
                     st.write("Response:")
-                    st.write(output)
-    with col2:
-        if vectara_query:
-            with st.expander("Vectara Search Results"):
-                vectara_results = perform_vectara_search(vectara_query)
-                
-                # Using an expander to show results
-            with st.expander("Vectara Search Results", expanded=True):
-                vectara_results = perform_vectara_search(vectara_query)
-                display_vectara_results(vectara_results)
+                    st.write(output)    
 
-        # Text box for user input
-        user_input = st.text_input("Talk to the chatbot:")
+    
+if option =="Vectara":
+    st.header('Vectara Semantic Search')
+    vectara_query = st.text_input("Enter your search query:")     
 
-        # When the user inputs a question and presses enter
-        if user_input:
-            # Get the chatbot's response
-            query_result = chatbot.query(user_input)
+    if vectara_query:
+        with st.expander("Vectara Search Results"):
+            vectara_results = perform_vectara_search(vectara_query)
+            
+            # Using an expander to show results
+        with st.expander("Vectara Search Results", expanded=True):
+            vectara_results = perform_vectara_search(vectara_query)
+            display_vectara_results(vectara_results)
+         # Text box for user input
+if option == "Chatbot":
+    # Assiging a role 
+    
+    
+    prompt = st.chat_input("Say something")
 
-            # Display the response
-            st.text_area("Chatbot says:", value=query_result["text"], height=200, max_chars=None, key=None)
+    if prompt:
+        message = st.chat_message("assistant")
+        #st.write(f"User has sent the following prompt: {prompt}")
+        message.write(prompt)
+        # Get the chatbot's response
+        query_result = chatbot.query(prompt)
+
+        # Display the response
+        #st.text_area("Chatbot says:", value=query_result["text"], height=200, max_chars=None, key=None)    
+        message.write("🧠 Thinking ...")
+        message.write(query_result["text"])
