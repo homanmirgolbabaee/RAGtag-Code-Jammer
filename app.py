@@ -10,25 +10,27 @@ from urllib.parse import urlencode
 
 
 ## Chatbot 
-
+'''
 def load_cookies_from_json(json_filepath):
     with open(json_filepath, 'r') as f:
         #cookies_dict = json.load(f)
         cookies_dict= None
     return cookies_dict
-
+'''
+'''
 # It's assumed here that `cookies` is already a dictionary with your authentication cookies.
 # NEVER hardcode your credentials. Use Streamlit secrets for this.
 def secure_get_cookies():
     pass
-
+'''
+'''
 def init_chatbot():
     # Assuming you have a method to securely obtain cookies
     cookies = load_cookies_from_json("cookies.json")
     return hugchat.ChatBot(cookies=cookies)
 
 chatbot = init_chatbot()
-
+'''
 def get_vectara_jwt(client_id, client_secret, auth_url):
     # The data to be sent with the POST request
     data = {
