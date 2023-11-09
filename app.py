@@ -7,7 +7,26 @@ from clarifai_grpc.channel.clarifai_channel import ClarifaiChannel
 from clarifai_grpc.grpc.api import service_pb2, service_pb2_grpc
 from clarifai_grpc.grpc.api.status import status_code_pb2
 from clarifai_grpc.grpc.api import resources_pb2
+from hugchat import hugchat
 
+## Chatbot 
+
+def load_cookies_from_json(json_filepath):
+    with open(json_filepath, 'r') as f:
+        cookies_dict = json.load(f)
+    return cookies_dict
+
+# It's assumed here that `cookies` is already a dictionary with your authentication cookies.
+# NEVER hardcode your credentials. Use Streamlit secrets for this.
+def secure_get_cookies():
+    pass
+
+def init_chatbot():
+    # Assuming you have a method to securely obtain cookies
+    cookies = load_cookies_from_json("cookies.json")
+    return hugchat.ChatBot(cookies=cookies)
+
+chatbot = init_chatbot()
 
 # Load the environment variables from the .env file
 load_dotenv("secrets.env")
@@ -155,5 +174,13 @@ with st.container():
                 vectara_results = perform_vectara_search(vectara_query)
                 display_vectara_results(vectara_results)
 
+        # Text box for user input
+        user_input = st.text_input("Talk to the chatbot:")
 
+        # When the user inputs a question and presses enter
+        if user_input:
+            # Get the chatbot's response
+            query_result = chatbot.query(user_input)
 
+            # Display the response
+            st.text_area("Chatbot says:", value=query_result["text"], height=200, max_chars=None, key=None)
