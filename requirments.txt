@@ -2,3 +2,4 @@ streamlit
 json
 hugchat
 urllib
+clarifai
