@@ -2,8 +2,6 @@
 deadline 9 Nov 
 
 
-Sure, here's a sample GitHub README for your hackathon project:
-
 ---
 
 # Customer Service Chatbot for Vectara Semantic Search & Clarifai Model 🤖🔍
