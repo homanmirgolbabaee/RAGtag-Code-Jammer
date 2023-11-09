@@ -1,5 +1,5 @@
+clarifai-grpc
 streamlit
 json
 hugchat
 urllib
-clarifai-grpc
