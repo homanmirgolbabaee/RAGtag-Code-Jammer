@@ -1,6 +1,5 @@
-requests
-clarifai-grpc
 streamlit
-json
+clarifai-grpc
+requests
 hugchat
 urllib
