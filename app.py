@@ -195,7 +195,7 @@ def find_highest_score_and_texts(stored_results):
 
 
 # Initialize Streamlit application
-st.set_page_config(page_title='RAGtag Code Jammer', layout='wide')
+#st.set_page_config(page_title='RAGtag Code Jammer', layout='wide')
 # Title and description
 st.title('🤖RAGtag Customer Assistant')
 st.caption('Click Here for Tutorial')
