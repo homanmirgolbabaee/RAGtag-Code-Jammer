@@ -2,4 +2,3 @@ streamlit
 clarifai-grpc
 requests
 hugchat
-urllib
