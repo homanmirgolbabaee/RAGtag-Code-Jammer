@@ -1,9 +1,9 @@
 import streamlit as st
 import requests
-#from clarifai_grpc.channel.clarifai_channel import ClarifaiChannel
-#from clarifai_grpc.grpc.api import service_pb2, service_pb2_grpc
-#from clarifai_grpc.grpc.api.status import status_code_pb2
-#from clarifai_grpc.grpc.api import resources_pb2
+from clarifai_grpc.channel.clarifai_channel import ClarifaiChannel
+from clarifai_grpc.grpc.api import service_pb2, service_pb2_grpc
+from clarifai_grpc.grpc.api.status import status_code_pb2
+from clarifai_grpc.grpc.api import resources_pb2
 import hugchat
 import requests
 from urllib.parse import urlencode
@@ -199,7 +199,7 @@ st.title('🤖RAGtag Customer Assistant')
 st.caption('Click Here for Tutorial')
 option = st.sidebar.radio('Choose a service:', ('🤗Clarifai', '✔️Vectara', '💬Chatbot','🛠️Upload Comming Soon'))
 
-'''
+
 if option == '🤗Clarifai':
         st.header('Clarifai Model Response')
         clarifai_input = st.text_area('Enter text for Clarifai Model:', height=100)
@@ -242,7 +242,7 @@ if option == '🤗Clarifai':
                     st.success("Analysis Complete with Clarifai")
                     st.write("Response:")
                     st.write(output)    
-'''
+
     
 if option =="✔️Vectara":
     st.header('Vectara Semantic Search')
