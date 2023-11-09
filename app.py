@@ -4,7 +4,7 @@ import requests
 #from clarifai_grpc.grpc.api import service_pb2, service_pb2_grpc
 #from clarifai_grpc.grpc.api.status import status_code_pb2
 #from clarifai_grpc.grpc.api import resources_pb2
-from hugchat import hugchat
+import hugchat
 import requests
 from urllib.parse import urlencode
 
